@@ -1,6 +1,7 @@
 from flask import Flask, g, request, jsonify
 # TODO As homeserver increases in complexity, transition to an ORM (SQLAlchemy)
 import sqlite3
+import json
 app = Flask(__name__)
 
 def get_db():
@@ -9,9 +10,9 @@ def get_db():
         db = g._database = sqlite3.connect("homedata.db")
     return db
 
-def query(sql):
+def query(sql, replacements=None):
     cur = get_db().cursor()
-    cur.execute(sql)
+    cur.execute(sql, replacements)
     return cur.fetchall()
 
 def result_to_list(result):
@@ -19,7 +20,7 @@ def result_to_list(result):
 
 @app.route("/")
 def hello():
-  return "Hello World"
+  return "Hello World! Homeserver is running."
 
 @app.route("/maja-toothbrush-timestamps", methods=["GET", "POST"])
 def maja_toothbrush_timestamps():
@@ -29,16 +30,16 @@ def maja_toothbrush_timestamps():
         return "Success", 203 # CREATED
     else:
         result = query("SELECT * FROM maja_toothbrush_timestamps")
-        return jsonify({
-            "timestamps": result_to_list(result)
-        })
+        return jsonify({"timestamps": result_to_list(result)})
 
 @app.route("/maja-toothbrush-timestamps/latest")
 def latest():
     result = query('''SELECT * FROM maja_toothbrush_timestamps
                       ORDER BY timestamp DESC''')
     # TODO improve efficiency
-    return jsonify({
-        "timestamp": result_to_list(result)[0]
-    })
-        
+    return jsonify({"timestamp": result_to_list(result)[0]})
+
+@app.route("/health", methods=["POST"])
+def health():
+    print(request.json)
+    query("UPDATE health_data SET json = ?", json.dumps(request.json))
