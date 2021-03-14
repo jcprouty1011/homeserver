@@ -13,6 +13,7 @@ def get_db():
 def query(sql, replacements=None):
     cur = get_db().cursor()
     cur.execute(sql, replacements)
+    get_db().commit()
     return cur.fetchall()
 
 def result_to_list(result):
@@ -41,5 +42,8 @@ def latest():
 
 @app.route("/health", methods=["POST"])
 def health():
-    print(request.json)
-    query("UPDATE health_data SET json = ?", json.dumps(request.json))
+    if request.json is None:
+        return "The Content-Type must be application/json", 400 # BAD REQUEST
+    data = json.dumps(request.json)
+    query("INSERT INTO health_data VALUES (?, datetime('now'))", (data,))
+    return "Success", 200 # OK
